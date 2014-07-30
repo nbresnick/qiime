@@ -223,9 +223,12 @@ def run_pick_de_novo_otus(input_fp,
     except KeyError:
         params_str = ''
     # Build the OTU table building command
-    make_otu_table_cmd = 'make_otu_table.py -i %s -t %s -o %s %s' %\
-        (otu_fp, taxonomy_fp, otu_table_fp, params_str)
-
+    if(run_assign_tax):
+        make_otu_table_cmd = 'make_otu_table.py -i %s -t %s -o %s %s' %\
+            (otu_fp, taxonomy_fp, otu_table_fp, params_str)
+    else:
+        make_otu_table_cmd = 'make_otu_table.py -i %s -o %s %s' %\
+            (otu_fp, otu_table_fp, params_str)
     commands.append([('Make OTU table', make_otu_table_cmd)])
 
     if cluster_failures:
