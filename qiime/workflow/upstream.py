@@ -28,7 +28,8 @@ def run_pick_de_novo_otus(input_fp,
                           parallel=False,
                           logger=None,
                           suppress_md5=False,
-                          status_update_callback=print_to_stdout):
+                          status_update_callback=print_to_stdout,
+                          run_assign_tax=True):
     """ Run the data preparation steps of Qiime
 
         The steps performed by this function are:
@@ -168,51 +169,52 @@ def run_pick_de_novo_otus(input_fp,
     pick_rep_set_cmd = 'pick_rep_set.py -i %s -f %s -l %s -o %s %s' %\
         (otu_fp, input_fp, rep_set_log_fp, rep_set_fp, params_str)
     commands.append([('Pick representative set', pick_rep_set_cmd)])
-
-    # Prep the taxonomy assignment command
-    try:
-        assignment_method = params['assign_taxonomy']['assignment_method']
-    except KeyError:
-        assignment_method = 'uclust'
-    assign_taxonomy_dir = '%s/%s_assigned_taxonomy' %\
-        (output_dir, assignment_method)
-    taxonomy_fp = '%s/%s_rep_set_tax_assignments.txt' % \
-        (assign_taxonomy_dir, input_basename)
-    if parallel and (assignment_method == 'rdp' or
-                     assignment_method == 'blast' or
-                     assignment_method == 'uclust'):
-        # Grab the parallel-specific parameters
+    
+    if(run_assign_tax):
+        # Prep the taxonomy assignment command
         try:
-            params_str = get_params_str(params['parallel'])
+            assignment_method = params['assign_taxonomy']['assignment_method']
         except KeyError:
-            params_str = ''
+            assignment_method = 'uclust'
+        assign_taxonomy_dir = '%s/%s_assigned_taxonomy' %\
+            (output_dir, assignment_method)
+        taxonomy_fp = '%s/%s_rep_set_tax_assignments.txt' % \
+            (assign_taxonomy_dir, input_basename)
+        if parallel and (assignment_method == 'rdp' or
+                         assignment_method == 'blast' or
+                         assignment_method == 'uclust'):
+            # Grab the parallel-specific parameters
+            try:
+                params_str = get_params_str(params['parallel'])
+            except KeyError:
+                params_str = ''
 
-        # Grab the taxonomy assignment parameters
-        try:
-            # Want to find a cleaner strategy for this: the parallel script
-            # is method-specific, so doesn't take a --assignment_method
-            # option. This works for now though.
-            d = params['assign_taxonomy'].copy()
-            if 'assignment_method' in d:
-                del d['assignment_method']
-            params_str += ' %s' % get_params_str(d)
-        except KeyError:
-            pass
+            # Grab the taxonomy assignment parameters
+            try:
+                # Want to find a cleaner strategy for this: the parallel script
+                # is method-specific, so doesn't take a --assignment_method
+                # option. This works for now though.
+                d = params['assign_taxonomy'].copy()
+                if 'assignment_method' in d:
+                    del d['assignment_method']
+                params_str += ' %s' % get_params_str(d)
+            except KeyError:
+                pass
 
-        # Build the parallel taxonomy assignment command
-        assign_taxonomy_cmd = \
-            'parallel_assign_taxonomy_%s.py -i %s -o %s %s' %\
-            (assignment_method, rep_set_fp, assign_taxonomy_dir, params_str)
-    else:
-        try:
-            params_str = get_params_str(params['assign_taxonomy'])
-        except KeyError:
-            params_str = ''
-        # Build the taxonomy assignment command
-        assign_taxonomy_cmd = 'assign_taxonomy.py -o %s -i %s %s' %\
-            (assign_taxonomy_dir, rep_set_fp, params_str)
+            # Build the parallel taxonomy assignment command
+            assign_taxonomy_cmd = \
+                'parallel_assign_taxonomy_%s.py -i %s -o %s %s' %\
+                (assignment_method, rep_set_fp, assign_taxonomy_dir, params_str)
+        else:
+            try:
+                params_str = get_params_str(params['assign_taxonomy'])
+            except KeyError:
+                params_str = ''
+            # Build the taxonomy assignment command
+            assign_taxonomy_cmd = 'assign_taxonomy.py -o %s -i %s %s' %\
+                (assign_taxonomy_dir, rep_set_fp, params_str)
 
-    commands.append([('Assign taxonomy', assign_taxonomy_cmd)])
+        commands.append([('Assign taxonomy', assign_taxonomy_cmd)])
 
     # Prep the OTU table building command
     otu_table_fp = '%s/otu_table.biom' % output_dir
@@ -221,9 +223,12 @@ def run_pick_de_novo_otus(input_fp,
     except KeyError:
         params_str = ''
     # Build the OTU table building command
-    make_otu_table_cmd = 'make_otu_table.py -i %s -t %s -o %s %s' %\
-        (otu_fp, taxonomy_fp, otu_table_fp, params_str)
-
+    if(run_assign_tax):
+        make_otu_table_cmd = 'make_otu_table.py -i %s -t %s -o %s %s' %\
+            (otu_fp, taxonomy_fp, otu_table_fp, params_str)
+    else:
+        make_otu_table_cmd = 'make_otu_table.py -i %s -o %s %s' %\
+            (otu_fp, otu_table_fp, params_str)
     commands.append([('Make OTU table', make_otu_table_cmd)])
 
     if cluster_failures:
