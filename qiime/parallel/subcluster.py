@@ -85,7 +85,7 @@ class ParallelSubcluster(ParallelWrapper):
 
             self._job_graph.add_node(pOTU, job=(run_pick_de_novo_otus,
                                                 output_fna_fp, potu_dir,
-                                                command_handler, params,
+                                                call_commands_serially, params,
                                                 qiime_config, False, None,
                                                 False, status_update_callback,
                                                 False), requires_deps=False)

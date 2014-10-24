@@ -1,4 +1,4 @@
-#!/n/sw/python-2.7.1/bin/python
+#!/usr/bin/env python
 # File created on 09 Aug 2012
 
 __author__ = "Jon Sanders"
@@ -71,7 +71,7 @@ script_info['required_options'] = [
                 help='path to sequence fasta [REQUIRED]'),
     make_option('-p', '--parameter_fp',
                 help='path to parameters file [REQUIRED]'),
-    make_option('-t', '--otu_table_fp',
+    make_option('-b', '--otu_table_fp',
                 help='path to OTU table file [REQUIRED]')
 ]
 script_info['optional_options'] = [
@@ -80,6 +80,7 @@ script_info['optional_options'] = [
                 dest='force', help='Force overwrite of existing output directory' +
                 ' (note: existing files in output_dir will not be removed)' +
                 ' [default: %default]'),
+    options_lookup['jobs_to_start'],
     options_lookup['retain_temp_files']
 
 ]
